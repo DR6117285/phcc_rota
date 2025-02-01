@@ -1,14 +1,6 @@
-from typing import List
 import pytest
-from dataclasses import dataclass
-from src.core.staff_manager import StaffManager, Doctor, Team
-
-@dataclass
-class Doctor:
-    id: str
-    name: str
-    gender: str
-    team: int
+from src.interfaces.staff_interfaces import Doctor
+from src.core.staff_manager import StaffManager
 
 def test_staff_manager_creation():
     manager = StaffManager()

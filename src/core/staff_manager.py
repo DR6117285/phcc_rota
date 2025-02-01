@@ -1,14 +1,7 @@
-from dataclasses import dataclass
 from typing import Dict, List, Optional
+from src.interfaces.staff_interfaces import IStaffManager, Doctor
 
-@dataclass
-class Doctor:
-    id: str
-    name: str
-    gender: str
-    team: int
-
-class StaffManager:
+class StaffManager(IStaffManager):
     def __init__(self):
         self._doctors: Dict[str, Doctor] = {}
 

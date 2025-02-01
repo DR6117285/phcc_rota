@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Management - Medical Rota System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Medical Rota System</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/conflicts">Conflicts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/report">Report</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/staff">Staff</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Staff List and Search -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Staff Members</h5>
+                        <button class="btn btn-primary" onclick="showAddStaffModal()">
+                            <i class="bi bi-plus"></i> Add Staff Member
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col">
+                                <input type="text" class="form-control" id="staffSearch" 
+                                       placeholder="Search staff..." onkeyup="filterStaff()">
+                            </div>
+                            <div class="col-auto">
+                                <select class="form-select" id="teamFilter" onchange="filterStaff()">
+                                    <option value="">All Teams</option>
+                                    {% for team in teams %}
+                                        <option value="{{ team.id }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Role</th>
+                                        <th>Team</th>
+                                        <th>Skills</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staffTableBody">
+                                    {% for staff in staff_members %}
+                                        <tr>
+                                            <td>{{ staff.name }}</td>
+                                            <td>{{ staff.role }}</td>
+                                            <td>{{ staff.team }}</td>
+                                            <td>
+                                                {% for skill, level in staff.skills.items() %}
+                                                    <span class="badge bg-info">{{ skill }} ({{ level.value }})</span>
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary" onclick="showStaffDetails('{{ staff.id }}')">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-warning" onclick="showEditStaffModal('{{ staff.id }}')">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Staff Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <h6>Total Staff</h6>
+                                <h2>{{ stats.total_staff }}</h2>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <h6>Teams</h6>
+                                <h2>{{ stats.total_teams }}</h2>
+                            </div>
+                            <div class="col-6">
+                                <h6>Skills</h6>
+                                <h2>{{ stats.total_skills }}</h2>
+                            </div>
+                            <div class="col-6">
+                                <h6>Certifications</h6>
+                                <h2>{{ stats.total_certifications }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Team Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="teamDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Staff Modal -->
+    <div class="modal fade" id="staffModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="staffModalTitle">Add Staff Member</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="staffForm">
+                        <input type="hidden" id="staffId">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Name</label>
+                                <input type="text" class="form-control" id="staffName" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Role</label>
+                                <input type="text" class="form-control" id="staffRole" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Gender</label>
+                                <select class="form-select" id="staffGender" required>
+                                    <option value="M">Male</option>
+                                    <option value="F">Female</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Team</label>
+                                <select class="form-select" id="staffTeam">
+                                    <option value="">Select Team</option>
+                                    {% for team in teams %}
+                                        <option value="{{ team.id }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="staffEmail">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="staffPhone">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveStaff()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Details Modal -->
+    <div class="modal fade" id="staffDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Staff Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs" id="staffDetailsTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#profileTab">Profile</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#skillsTab">Skills & Certifications</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#availabilityTab">Availability</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#preferencesTab">Preferences</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content mt-3">
+                        <div class="tab-pane fade show active" id="profileTab">
+                            <div id="staffProfile"></div>
+                        </div>
+                        <div class="tab-pane fade" id="skillsTab">
+                            <div class="mb-3">
+                                <h6>Skills</h6>
+                                <div id="staffSkills"></div>
+                                <button class="btn btn-sm btn-primary mt-2" onclick="showAddSkillModal()">
+                                    <i class="bi bi-plus"></i> Add Skill
+                                </button>
+                            </div>
+                            <div>
+                                <h6>Certifications</h6>
+                                <div id="staffCertifications"></div>
+                                <button class="btn btn-sm btn-primary mt-2" onclick="showAddCertificationModal()">
+                                    <i class="bi bi-plus"></i> Add Certification
+                                </button>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="availabilityTab">
+                            <div class="mb-3">
+                                <h6>Regular Availability</h6>
+                                <div id="regularAvailability"></div>
+                            </div>
+                            <div>
+                                <h6>Exceptions</h6>
+                                <div id="availabilityExceptions"></div>
+                                <button class="btn btn-sm btn-primary mt-2" onclick="showAddExceptionModal()">
+                                    <i class="bi bi-plus"></i> Add Exception
+                                </button>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="preferencesTab">
+                            <div class="mb-3">
+                                <h6>Shift Type Preferences</h6>
+                                <div id="shiftPreferences"></div>
+                            </div>
+                            <div class="mb-3">
+                                <h6>Day Preferences</h6>
+                                <div id="dayPreferences"></div>
+                            </div>
+                            <div>
+                                <h6>Colleague Preferences</h6>
+                                <div id="colleaguePreferences"></div>
+                            </div>
+                            <button class="btn btn-sm btn-primary mt-3" onclick="showEditPreferencesModal()">
+                                <i class="bi bi-pencil"></i> Edit Preferences
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Initialize team distribution chart
+        const ctx = document.getElementById('teamDistributionChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: {{ team_distribution.labels|tojson|safe }},
+                datasets: [{
+                    data: {{ team_distribution.data|tojson|safe }},
+                    backgroundColor: [
+                        '#FF6384',
+                        '#36A2EB',
+                        '#FFCE56',
+                        '#4BC0C0',
+                        '#9966FF'
+                    ]
+                }]
+            }
+        });
+
+        function filterStaff() {
+            const searchText = document.getElementById('staffSearch').value.toLowerCase();
+            const teamFilter = document.getElementById('teamFilter').value;
+            const rows = document.getElementById('staffTableBody').getElementsByTagName('tr');
+
+            for (let row of rows) {
+                const name = row.cells[0].textContent.toLowerCase();
+                const team = row.cells[2].textContent;
+                const matchesSearch = name.includes(searchText);
+                const matchesTeam = !teamFilter || team === teamFilter;
+                row.style.display = matchesSearch && matchesTeam ? '' : 'none';
+            }
+        }
+
+        function showAddStaffModal() {
+            document.getElementById('staffModalTitle').textContent = 'Add Staff Member';
+            document.getElementById('staffForm').reset();
+            document.getElementById('staffId').value = '';
+            new bootstrap.Modal(document.getElementById('staffModal')).show();
+        }
+
+        function showEditStaffModal(staffId) {
+            document.getElementById('staffModalTitle').textContent = 'Edit Staff Member';
+            fetch(`/staff/${staffId}`)
+                .then(response => response.json())
+                .then(staff => {
+                    document.getElementById('staffId').value = staff.id;
+                    document.getElementById('staffName').value = staff.name;
+                    document.getElementById('staffRole').value = staff.role;
+                    document.getElementById('staffGender').value = staff.gender;
+                    document.getElementById('staffTeam').value = staff.team || '';
+                    document.getElementById('staffEmail').value = staff.contact.email || '';
+                    document.getElementById('staffPhone').value = staff.contact.phone || '';
+                    new bootstrap.Modal(document.getElementById('staffModal')).show();
+                });
+        }
+
+        function saveStaff() {
+            const staffId = document.getElementById('staffId').value;
+            const staffData = {
+                name: document.getElementById('staffName').value,
+                role: document.getElementById('staffRole').value,
+                gender: document.getElementById('staffGender').value,
+                team: document.getElementById('staffTeam').value,
+                email: document.getElementById('staffEmail').value,
+                phone: document.getElementById('staffPhone').value
+            };
+
+            const url = staffId ? `/staff/${staffId}` : '/staff';
+            const method = staffId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(staffData)
+            })
+            .then(response => response.json())
+            .then(() => {
+                bootstrap.Modal.getInstance(document.getElementById('staffModal')).hide();
+                window.location.reload();
+            });
+        }
+
+        function showStaffDetails(staffId) {
+            fetch(`/staff/${staffId}`)
+                .then(response => response.json())
+                .then(staff => {
+                    // Populate profile tab
+                    document.getElementById('staffProfile').innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Name:</strong> ${staff.name}</p>
+                                <p><strong>Role:</strong> ${staff.role}</p>
+                                <p><strong>Gender:</strong> ${staff.gender}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Team:</strong> ${staff.team || 'Not Assigned'}</p>
+                                <p><strong>Email:</strong> ${staff.contact.email || 'Not Set'}</p>
+                                <p><strong>Phone:</strong> ${staff.contact.phone || 'Not Set'}</p>
+                            </div>
+                        </div>
+                    `;
+
+                    // Populate skills tab
+                    const skillsHtml = Object.entries(staff.skills)
+                        .map(([skill, level]) => `
+                            <div class="badge bg-info me-2 mb-2">${skill} (${level})</div>
+                        `).join('');
+                    document.getElementById('staffSkills').innerHTML = skillsHtml || 'No skills added';
+
+                    const certificationsHtml = Array.from(staff.certifications)
+                        .map(cert => `
+                            <div class="badge bg-success me-2 mb-2">${cert}</div>
+                        `).join('');
+                    document.getElementById('staffCertifications').innerHTML = certificationsHtml || 'No certifications added';
+
+                    // Show the modal
+                    new bootstrap.Modal(document.getElementById('staffDetailsModal')).show();
+                });
+        }
+    </script>
+</body>
+</html> 
